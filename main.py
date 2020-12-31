@@ -1,38 +1,44 @@
 import os
+from subprocess import Popen
+from re import match
 from zipfile import ZipFile
 from shutil import copy as file_copy
 from uuid import uuid4
 from tinydb import TinyDB, Query
-from playsound import playsound
+from pygame import mixer # Load the required library
+
 
 quit = False
 accepted_types = ["pcm", "wav", "aiff", "mp3",
                   "aac", "ogg", "wma", "flac", "alac", "wma"]
 db = TinyDB('db.json')
-process = None
 
 
 def quit_program():
     global quit
-    # print("Are you sure?[Y/N]")
-    # answer = input().lower()
-    # if answer in ["", "y", "yes"]:
     quit = True
-    return ""
-
-# todo add date
+    return "bye"
 
 
 def add_song(file, artist, song_name, date, *tags):
     try:
-        fileArray = file.split(".")
-        file_name = fileArray[0]
-        type = fileArray[1].lower()
+        fileDetails = file.split(".")
+        file_name = fileDetails[0]
+        type = fileDetails[1].lower()
         id = str(uuid4())
 
         if type not in accepted_types:
             raise "Unregonized file format!"
 
+        # Format params
+        artist = artist.replace("_", " ")
+        song_name = artist.replace("_", " ")
+
+        # Check date
+        if match('(\d{2})[./-](\d{2})[./-](\d{4})$', date) is None:
+            raise Exception("Invalid Date")
+
+        # Copy file and rename it to ID.type
         file_copy(file, "Storage")
         os.rename(f"Storage/{file}", f"Storage/{id}.{type}")
 
@@ -79,6 +85,7 @@ def delete_song(id, *_):
 def update_data_from_input(data):
     print("Update or leave empty where you do not want to modify the data")
     for key in data.keys():
+        # cannot modify id or type
         if key in ["ID", "type"]:
             continue
 
@@ -121,6 +128,9 @@ def search(*kvp_list):
         complexQuery &= (query[key] == value)
 
     data = db.search(complexQuery)
+
+    if len(data) == 0:
+        return "No data found!"
     return data
 
 
@@ -142,23 +152,21 @@ def create_save_list(archive_path, *kvp_list):
     except Exception as error:
         return f"Failure! {error}"
 
-# Define a function for the thread
-
 
 def play(id, *_):
-    global process
     try:
         query = Query()
         data = db.search(query["ID"] == id)[0]
         type = data["type"]
-        song_path = f'Storage/{id}.{type}'
+        song_path = f'{os.getcwd()}\\Storage\\{id}.{type}'
 
-       playsound(song_path, True)
+        mixer.init()
+        mixer.music.load(song_path)
+        mixer.music.play()
 
         song_name = data["song name"]
         artist = data["artist"]
         return f"Playing {song_name} by {artist}"
-        x.join()
 
     except IndexError:
         return "Failure! Data not found!"
@@ -167,9 +175,9 @@ def play(id, *_):
         return f"Failure! {error}"
 
 
-def stop(*_):
-    process.terminate()
-    return ""
+def stop(_=""):
+    mixer.music.stop()
+    return "Song stopped"
 
 
 def unkown_command(_=""):
@@ -196,6 +204,7 @@ def main():
             function = command_to_function.get(command, unkown_command)
             result = function(*user_input[1:])
             print(result)
+
         except Exception as error:
             print(error)
 
