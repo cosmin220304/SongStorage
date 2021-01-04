@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from shutil import copy as file_copy
 from uuid import uuid4
 from tinydb import TinyDB, Query
-from pygame import mixer # Load the required library
+from pygame import mixer  
 
 
 quit = False
