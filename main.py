@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from shutil import copy as file_copy
 from uuid import uuid4
 from tinydb import TinyDB, Query
-from pygame import mixer  
+from pygame import mixer
 
 
 quit = False
@@ -197,6 +197,9 @@ command_to_function = {
 
 
 def main():
+    if not os.path.exists('Storage'):
+        os.makedirs('Storage')
+
     while not quit:
         try:
             user_input = input().split(" ")
